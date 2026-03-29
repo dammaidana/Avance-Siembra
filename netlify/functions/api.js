@@ -26,7 +26,17 @@ exports.handler = async function(event) {
     };
   }
 
-  const body = JSON.parse(event.body);
+  let body;
+  try {
+    body = JSON.parse(event.body);
+  } catch(e) {
+    return {
+      statusCode: 400,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: 'Body inválido: ' + e.message })
+    };
+  }
+
   const userMessage = body.messages[0].content;
 
   const geminiPayload = JSON.stringify({
@@ -34,7 +44,7 @@ exports.handler = async function(event) {
     generationConfig: { temperature: 0.1, maxOutputTokens: 4000 }
   });
 
-  const path = `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const path = '/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey;
 
   return new Promise((resolve) => {
     const options = {
@@ -49,10 +59,29 @@ exports.handler = async function(event) {
 
     const req = https.request(options, (res) => {
       let data = '';
-      res.on('data', chunk => data += chunk);
+      res.on('data', chunk => { data += chunk; });
       res.on('end', () => {
+        if (!data || data.trim() === '') {
+          resolve({
+            statusCode: 500,
+            headers: { 'Access-Control-Allow-Origin': '*' },
+            body: JSON.stringify({ error: 'Respuesta vacía de Gemini (status ' + res.statusCode + ')' })
+          });
+          return;
+        }
         try {
           const geminiResp = JSON.parse(data);
+
+          // Verificar si Gemini devolvió error
+          if (geminiResp.error) {
+            resolve({
+              statusCode: 400,
+              headers: { 'Access-Control-Allow-Origin': '*' },
+              body: JSON.stringify({ error: 'Gemini error: ' + geminiResp.error.message })
+            });
+            return;
+          }
+
           const text = geminiResp.candidates?.[0]?.content?.parts?.[0]?.text || '';
           resolve({
             statusCode: 200,
@@ -66,7 +95,7 @@ exports.handler = async function(event) {
           resolve({
             statusCode: 500,
             headers: { 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({ error: 'Error procesando respuesta: ' + e.message })
+            body: JSON.stringify({ error: 'Parse error: ' + e.message + ' | Raw: ' + data.substring(0, 200) })
           });
         }
       });
@@ -76,7 +105,7 @@ exports.handler = async function(event) {
       resolve({
         statusCode: 500,
         headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: e.message })
+        body: JSON.stringify({ error: 'Request error: ' + e.message })
       });
     });
 
