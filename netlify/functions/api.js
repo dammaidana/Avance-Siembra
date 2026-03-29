@@ -17,7 +17,7 @@ exports.handler = async function(event) {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     return {
       statusCode: 500,
@@ -39,21 +39,24 @@ exports.handler = async function(event) {
 
   const userMessage = body.messages[0].content;
 
-  const geminiPayload = JSON.stringify({
-    contents: [{ parts: [{ text: userMessage }] }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 4000 }
+  const payload = JSON.stringify({
+    model: 'meta-llama/llama-3.3-8b-instruct:free',
+    messages: [{ role: 'user', content: userMessage }],
+    max_tokens: 4000,
+    temperature: 0.1
   });
-
-  const path = '/v1beta/models/gemini-1.5-flash-002:generateContent?key=' + apiKey;
 
   return new Promise((resolve) => {
     const options = {
-      hostname: 'generativelanguage.googleapis.com',
-      path: path,
+      hostname: 'openrouter.ai',
+      path: '/api/v1/chat/completions',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(geminiPayload)
+        'Authorization': 'Bearer ' + apiKey,
+        'HTTP-Referer': 'https://avance-siembra.netlify.app',
+        'X-Title': 'Avance Siembra Parser',
+        'Content-Length': Buffer.byteLength(payload)
       }
     };
 
@@ -70,16 +73,16 @@ exports.handler = async function(event) {
           return;
         }
         try {
-          const geminiResp = JSON.parse(data);
-          if (geminiResp.error) {
+          const resp = JSON.parse(data);
+          if (resp.error) {
             resolve({
               statusCode: 400,
               headers: { 'Access-Control-Allow-Origin': '*' },
-              body: JSON.stringify({ error: 'Gemini: ' + geminiResp.error.message })
+              body: JSON.stringify({ error: 'OpenRouter: ' + (resp.error.message || JSON.stringify(resp.error)) })
             });
             return;
           }
-          const text = geminiResp.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const text = resp.choices?.[0]?.message?.content || '';
           resolve({
             statusCode: 200,
             headers: {
@@ -92,7 +95,7 @@ exports.handler = async function(event) {
           resolve({
             statusCode: 500,
             headers: { 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({ error: 'Parse error: ' + e.message + ' | Raw: ' + data.substring(0,200) })
+            body: JSON.stringify({ error: 'Parse error: ' + e.message + ' | Raw: ' + data.substring(0,300) })
           });
         }
       });
@@ -106,7 +109,7 @@ exports.handler = async function(event) {
       });
     });
 
-    req.write(geminiPayload);
+    req.write(payload);
     req.end();
   });
 };
