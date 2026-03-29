@@ -1,8 +1,3 @@
-bash
-
-cat /home/claude/netlify-app/netlify/functions/api.js
-Salida
-
 const https = require('https');
 
 exports.handler = async function(event) {
@@ -34,13 +29,9 @@ exports.handler = async function(event) {
   const body = JSON.parse(event.body);
   const userMessage = body.messages[0].content;
 
-  // Gemini API payload
   const geminiPayload = JSON.stringify({
     contents: [{ parts: [{ text: userMessage }] }],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 4000
-    }
+    generationConfig: { temperature: 0.1, maxOutputTokens: 4000 }
   });
 
   const path = `/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
@@ -62,18 +53,14 @@ exports.handler = async function(event) {
       res.on('end', () => {
         try {
           const geminiResp = JSON.parse(data);
-          // Convertir respuesta Gemini al formato que espera el frontend
           const text = geminiResp.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          const converted = {
-            content: [{ type: 'text', text: text }]
-          };
           resolve({
             statusCode: 200,
             headers: {
               'Content-Type': 'application/json',
               'Access-Control-Allow-Origin': '*'
             },
-            body: JSON.stringify(converted)
+            body: JSON.stringify({ content: [{ type: 'text', text: text }] })
           });
         } catch(e) {
           resolve({
