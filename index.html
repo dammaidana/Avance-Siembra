@@ -399,15 +399,6 @@ Contratista: Gutiérrez Hnos"></textarea>
     </div>
 
     <div class="panel-section">
-      <div class="label">🔑 API Key</div>
-      <input type="password" id="apiKey" placeholder="AIzaSy..." 
-        style="width:100%;border:1.5px solid var(--borde);border-radius:6px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.75rem;outline:none;color:var(--texto);">
-      <div style="font-size:.68rem;color:var(--gris);margin-top:5px;">
-        Tu clave de Google Gemini (AI Studio). Solo se usa localmente, nunca se guarda.
-      </div>
-    </div>
-
-    <div class="panel-section">
       <div class="tip">
         <strong>Tip:</strong> Después de interpretar podés editar cualquier celda de la tabla. 
         Hacé clic sobre el valor para modificarlo.
@@ -505,14 +496,10 @@ Mensaje:
 ${msg}`;
 
   try {
-    const apiKey = document.getElementById('apiKey').value.trim();
-    if (!apiKey) { setLoading(false); mostrarError('Ingresá tu API Key primero.'); return; }
-
     const res = await fetch('/.netlify/functions/api', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
