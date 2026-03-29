@@ -400,10 +400,10 @@ Contratista: Gutiérrez Hnos"></textarea>
 
     <div class="panel-section">
       <div class="label">🔑 API Key</div>
-      <input type="password" id="apiKey" placeholder="sk-ant-..." 
+      <input type="password" id="apiKey" placeholder="AIzaSy..." 
         style="width:100%;border:1.5px solid var(--borde);border-radius:6px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.75rem;outline:none;color:var(--texto);">
       <div style="font-size:.68rem;color:var(--gris);margin-top:5px;">
-        Tu clave de Anthropic. Solo se usa localmente, nunca se guarda.
+        Tu clave de Google Gemini (AI Studio). Solo se usa localmente, nunca se guarda.
       </div>
     </div>
 
@@ -522,7 +522,7 @@ ${msg}`;
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Error de API');
+    if (!res.ok) throw new Error(data.error?.message || data.error || JSON.stringify(data));
 
     const texto = data.content.find(b => b.type === 'text')?.text || '';
     const clean = texto.replace(/```json|```/g,'').trim();
