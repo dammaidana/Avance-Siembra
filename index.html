@@ -508,7 +508,7 @@ ${msg}`;
     const apiKey = document.getElementById('apiKey').value.trim();
     if (!apiKey) { setLoading(false); mostrarError('Ingresá tu API Key primero.'); return; }
 
-    const res = await fetch('/api', {
+    const res = await fetch('/.netlify/functions/api', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
