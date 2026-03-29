@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avance de Siembra — Parser</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap');
+
+:root {
+  --verde:    #2d6a4f;
+  --verde-cl: #40916c;
+  --verde-xs: #d8f3dc;
+  --fondo:    #f4f6ee;
+  --borde:    #c8d5b9;
+  --texto:    #1b2a23;
+  --gris:     #6b7c6e;
+  --rojo:     #c1121f;
+  --rojo-xs:  #fde8e8;
+  --amarillo: #f4a261;
+  --am-xs:    #fff3cd;
+  --blanco:   #ffffff;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* ── HEADER ── */
+header {
+  background: var(--verde);
+  color: white;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+header h1 { font-size: 1rem; font-weight: 700; }
+header p  { font-size: .72rem; opacity: .75; margin-top: 1px; }
+.header-badge {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: .7rem;
+  font-weight: 600;
+}
+
+/* ── LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 0;
+  height: calc(100vh - 52px);
+}
+
+/* Panel izquierdo */
+.panel-input {
+  background: var(--blanco);
+  border-right: 1.5px solid var(--borde);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-section {
+  padding: 16px;
+  border-bottom: 1px solid var(--borde);
+}
+.panel-section:last-child { border-bottom: none; flex: 1; display: flex; flex-direction: column; }
+.label {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--verde);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+textarea {
+  width: 100%;
+  flex: 1;
+  border: 1.5px solid var(--borde);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .76rem;
+  line-height: 1.65;
+  resize: none;
+  color: var(--texto);
+  background: #fafdf7;
+  outline: none;
+  min-height: 220px;
+  transition: border-color .2s;
+}
+textarea:focus { border-color: var(--verde-cl); }
+
+/* Panel derecho */
+.panel-result {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.result-toolbar {
+  background: var(--blanco);
+  border-bottom: 1.5px solid var(--borde);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.result-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+/* ── BOTONES ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 7px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-weight: 600;
+  font-size: .8rem;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--verde);
+  color: white;
+  width: 100%;
+  justify-content: center;
+  margin-top: 10px;
+  padding: 10px;
+}
+.btn-primary:hover  { background: var(--verde-cl); }
+.btn-primary:disabled { background: #9dbfae; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--borde);
+  color: var(--texto);
+}
+.btn-ghost:hover { background: var(--verde-xs); border-color: var(--verde-cl); }
+
+.btn-success {
+  background: var(--verde-xs);
+  border-color: var(--verde-cl);
+  color: var(--verde);
+}
+.btn-success:hover { background: var(--verde-cl); color: white; }
+
+.btn-danger {
+  background: var(--rojo-xs);
+  border-color: #f5c2c7;
+  color: var(--rojo);
+}
+.btn-danger:hover { background: var(--rojo); color: white; }
+
+.btn-warn {
+  background: var(--am-xs);
+  border-color: #f0c060;
+  color: #856404;
+}
+.btn-warn:hover { background: var(--amarillo); color: white; }
+
+.spacer { flex: 1; }
+
+/* ── TABLA EDITABLE ── */
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .8rem;
+  border: 1.5px solid var(--borde);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+thead tr { background: var(--verde); }
+thead th {
+  padding: 9px 8px;
+  text-align: left;
+  color: white;
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+thead th:first-child { padding-left: 12px; }
+
+tbody tr {
+  border-bottom: 1px solid #e8eedf;
+  transition: background .1s;
+}
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: #f5faf0; }
+tbody tr.row-error { background: #fff5f5; }
+tbody tr.row-error:hover { background: #ffe8e8; }
+
+tbody td {
+  padding: 4px 4px;
+  vertical-align: middle;
+}
+tbody td:first-child { padding-left: 8px; }
+
+/* Inputs dentro de la tabla */
+.cell-input {
+  width: 100%;
+  border: 1.5px solid transparent;
+  border-radius: 5px;
+  padding: 4px 6px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: .79rem;
+  background: transparent;
+  color: var(--texto);
+  outline: none;
+  transition: all .15s;
+  min-width: 60px;
+}
+.cell-input:hover  { border-color: var(--borde); background: white; }
+.cell-input:focus  { border-color: var(--verde-cl); background: white; box-shadow: 0 0 0 2px rgba(64,145,108,.15); }
+.cell-input.error  { border-color: var(--rojo) !important; background: var(--rojo-xs); }
+
+.cell-select {
+  width: 100%;
+  border: 1.5px solid transparent;
+  border-radius: 5px;
+  padding: 4px 4px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: .79rem;
+  background: transparent;
+  color: var(--texto);
+  outline: none;
+  cursor: pointer;
+  transition: all .15s;
+}
+.cell-select:hover  { border-color: var(--borde); background: white; }
+.cell-select:focus  { border-color: var(--verde-cl); background: white; }
+
+.cell-mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: .7rem;
+}
+
+/* badge condición */
+.badge-term { color: #2d6a4f; font-weight: 700; }
+.badge-parc { color: #856404; font-weight: 700; }
+
+/* botón eliminar fila */
+.btn-del-row {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ccc;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1;
+  transition: all .15s;
+}
+.btn-del-row:hover { color: var(--rojo); background: var(--rojo-xs); }
+
+/* ── ESTADO ── */
+.msg {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: .8rem;
+  margin-top: 8px;
+  display: none;
+}
+.msg-error { background: var(--rojo-xs); color: var(--rojo); border: 1px solid #f5c2c7; }
+.msg-info  { background: var(--verde-xs); color: var(--verde); border: 1px solid var(--borde); }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--gris);
+  gap: 12px;
+  text-align: center;
+}
+.empty-state .icon { font-size: 3rem; opacity: .3; }
+.empty-state p { font-size: .85rem; }
+
+.row-count {
+  font-size: .75rem;
+  color: var(--gris);
+  margin-left: auto;
+}
+.row-count strong { color: var(--verde); }
+
+/* spinner */
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#csvLink { display: none; }
+
+/* Tip */
+.tip {
+  font-size: .72rem;
+  color: var(--gris);
+  background: #f0f4e8;
+  border-radius: 6px;
+  padding: 8px 10px;
+  line-height: 1.5;
+}
+.tip strong { color: var(--verde); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="7" fill="#40916c"/>
+      <path d="M7 22L13 11l4 7 3-4.5 5 7.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>Avance de Siembra</h1>
+      <p>Parser de mensajes WhatsApp → Excel</p>
+    </div>
+  </div>
+  <div class="header-badge">DESDELSUR SA · 25/26</div>
+</header>
+
+<div class="layout">
+
+  <!-- ── PANEL IZQUIERDO ── -->
+  <div class="panel-input">
+    <div class="panel-section">
+      <div class="label">📅 Configuración</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <label style="font-size:.78rem;color:var(--gris);white-space:nowrap">Fecha del día:</label>
+        <input type="date" id="fechaManual" style="flex:1;border:1.5px solid var(--borde);border-radius:6px;padding:5px 8px;font-size:.8rem;font-family:inherit;outline:none;">
+      </div>
+    </div>
+
+    <div class="panel-section" style="flex:1;display:flex;flex-direction:column;">
+      <div class="label">💬 Mensaje de WhatsApp</div>
+      <textarea id="msgInput" placeholder="Pegá acá el mensaje del día...
+
+DH01C
+Poroto 
+Alubia Orgánico
+Linea 22: 
+6 ha - AL25-605-170-001
+Terminado
+Contratista: Polliotto
+____________________
+
+ZA11
+Poroto 
+Colorado Dark 
+26.3 ha - DA-25-519-200-002
+Terminado
+Contratista: Gutiérrez Hnos"></textarea>
+
+      <button class="btn btn-primary" id="parseBtn" onclick="parsear()">
+        <div class="spinner" id="spinner"></div>
+        <span id="btnIcon">⚡</span>
+        <span id="btnTxt">Interpretar mensaje</span>
+      </button>
+
+      <div class="msg msg-error" id="msgError"></div>
+      <div class="msg msg-info"  id="msgInfo"></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="label">🔑 API Key</div>
+      <input type="password" id="apiKey" placeholder="sk-ant-..." 
+        style="width:100%;border:1.5px solid var(--borde);border-radius:6px;padding:7px 10px;font-family:'IBM Plex Mono',monospace;font-size:.75rem;outline:none;color:var(--texto);">
+      <div style="font-size:.68rem;color:var(--gris);margin-top:5px;">
+        Tu clave de Anthropic. Solo se usa localmente, nunca se guarda.
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="tip">
+        <strong>Tip:</strong> Después de interpretar podés editar cualquier celda de la tabla. 
+        Hacé clic sobre el valor para modificarlo.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PANEL DERECHO ── -->
+  <div class="panel-result">
+    <div class="result-toolbar" id="toolbar" style="display:none">
+      <button class="btn btn-warn" onclick="agregarFila()">＋ Agregar fila</button>
+      <button class="btn btn-ghost" onclick="validarTabla()">✓ Validar</button>
+      <div class="spacer"></div>
+      <span class="row-count" id="rowCount"></span>
+      <button class="btn btn-success" onclick="copiarTSV()">📋 Copiar para Excel</button>
+      <button class="btn btn-ghost" onclick="descargarCSV()">⬇ CSV</button>
+    </div>
+
+    <div class="result-body" id="resultBody">
+      <div class="empty-state" id="emptyState">
+        <div class="icon">🌱</div>
+        <p>Pegá el mensaje de WhatsApp<br>y hacé clic en <strong>Interpretar</strong></p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<a id="csvLink"></a>
+
+<script>
+// ── CONFIGURACIÓN ──────────────────────────────────────────────────────────
+const CAMPOS_MAP = {
+  'DH': 'Don Horacio', 'LH': 'La Hercilia', 'CO': 'Corzuelas',
+  'ZA': 'Zacarias',   'FO': 'Fortin',       'MO': 'La Molienda'
+};
+const CULTIVOS   = ['Poroto','Maiz','Chia','Garbanzo','Pastura'];
+const TIPOS      = ['Alubia','Cramberry','Dark','Light','Canario','Tortola','Maiz Consociado','Maiz S/C','Chia','ORG','SEMILLA','Brachiaria'];
+const CONDICIONES = ['Terminado','Parcial'];
+
+function inferirCampo(lote) {
+  if (!lote) return '';
+  const pre = lote.replace(/[0-9]/g,'').toUpperCase().trim();
+  for (const k in CAMPOS_MAP) if (pre.startsWith(k)) return CAMPOS_MAP[k];
+  return '';
+}
+
+// Fecha de hoy como default
+(function() {
+  const hoy = new Date();
+  const yyyy = hoy.getFullYear();
+  const mm   = String(hoy.getMonth()+1).padStart(2,'0');
+  const dd   = String(hoy.getDate()).padStart(2,'0');
+  document.getElementById('fechaManual').value = `${yyyy}-${mm}-${dd}`;
+})();
+
+// ── DATOS ──────────────────────────────────────────────────────────────────
+let filas = [];
+let nextId = 1;
+
+// ── PARSEAR ────────────────────────────────────────────────────────────────
+async function parsear() {
+  const msg = document.getElementById('msgInput').value.trim();
+  if (!msg) { mostrarError('Pegá el mensaje primero.'); return; }
+
+  ocultarMensajes();
+  setLoading(true);
+
+  const fechaInput = document.getElementById('fechaManual').value;
+  let fechaDefault = '';
+  if (fechaInput) {
+    const [y,m,d] = fechaInput.split('-');
+    fechaDefault = `${d}/${m}/${y}`;
+  }
+
+  const prompt = `Sos un sistema que extrae datos de siembra de mensajes de WhatsApp en Argentina.
+Analizá el mensaje y devolvé SOLO un array JSON válido, sin texto adicional, sin backticks.
+
+Estructura de cada objeto:
+{"lote":"DH01C","cultivo":"Poroto","tipo":"Alubia","has":6,"insumo":"AL25-605-170-001","condicion":"Terminado","contratista":"Polliotto"}
+
+Reglas:
+- Una fila por cada combinación de has+insumo+contratista dentro de cada lote.
+- Si hay múltiples líneas (Linea 22, Linea 6) con has distintas → una fila por cada una.
+- Si hay múltiples contratistas con has distintas → una fila por cada uno.
+- Si aparece un "Total Xhas" con contratistas individuales → usá las individuales, no el total.
+- "has" es número decimal con punto.
+- "condicion": "Terminado" o "Parcial".
+- "tipo": normalizá → Alubia, Cramberry, Dark, Light, Canario, Tortola, Maiz Consociado, Maiz S/C, Chia, Garbanzo.
+- Si no hay insumo → "".
+- Si no hay contratista → "".
+- NO incluyas el campo (Don Horacio, Corzuelas, etc.) — se infiere del lote.
+
+Mensaje:
+${msg}`;
+
+  try {
+    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!apiKey) { setLoading(false); mostrarError('Ingresá tu API Key primero.'); return; }
+
+    const res = await fetch('/api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Error de API');
+
+    const texto = data.content.find(b => b.type === 'text')?.text || '';
+    const clean = texto.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    if (!Array.isArray(parsed) || !parsed.length) throw new Error('No se encontraron lotes.');
+
+    filas = parsed.map(r => ({
+      id: nextId++,
+      fecha: fechaDefault,
+      lote: r.lote || '',
+      cultivo: r.cultivo || 'Poroto',
+      tipo: r.tipo || '',
+      has: r.has ?? '',
+      insumo: r.insumo || '',
+      condicion: r.condicion || 'Parcial',
+      contratista: r.contratista || ''
+    }));
+
+    renderTabla();
+    mostrarInfo(`✔ ${filas.length} fila${filas.length > 1 ? 's' : ''} extraída${filas.length > 1 ? 's' : ''}. Revisá y editá lo que necesites.`);
+
+  } catch(e) {
+    mostrarError('Error: ' + e.message);
+    console.error(e);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ── RENDER TABLA ───────────────────────────────────────────────────────────
+function renderTabla() {
+  const body = document.getElementById('resultBody');
+  const toolbar = document.getElementById('toolbar');
+  const empty = document.getElementById('emptyState');
+
+  if (!filas.length) {
+    body.innerHTML = '';
+    body.appendChild(Object.assign(document.createElement('div'), {className:'empty-state', id:'emptyState'}));
+    document.getElementById('emptyState').innerHTML = '<div class="icon">🌱</div><p>No hay filas todavía</p>';
+    toolbar.style.display = 'none';
+    return;
+  }
+
+  toolbar.style.display = 'flex';
+  document.getElementById('rowCount').innerHTML = `<strong>${filas.length}</strong> filas`;
+
+  const html = `
+  <div class="table-wrap">
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Campo</th>
+        <th>Lote</th>
+        <th>Cultivo</th>
+        <th>Tipo</th>
+        <th>Has</th>
+        <th>Insumo</th>
+        <th>Condición</th>
+        <th>Contratista</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+    </tbody>
+  </table>
+  </div>`;
+
+  body.innerHTML = html;
+  const tbody = document.getElementById('tableBody');
+  filas.forEach(f => tbody.appendChild(crearFila(f)));
+}
+
+function crearFila(f) {
+  const tr = document.createElement('tr');
+  tr.id = `row-${f.id}`;
+  const campo = inferirCampo(f.lote);
+
+  tr.innerHTML = `
+    <td><input class="cell-input" style="width:90px" value="${f.fecha}" onchange="actualizarFila(${f.id},'fecha',this.value)"></td>
+    <td><input class="cell-input" style="width:100px;color:var(--gris)" value="${campo}" readonly tabindex="-1"></td>
+    <td><input class="cell-input" style="width:68px;font-weight:700" value="${f.lote}" onchange="actualizarLote(${f.id},this.value)"></td>
+    <td>
+      <select class="cell-select" style="width:80px" onchange="actualizarFila(${f.id},'cultivo',this.value)">
+        ${CULTIVOS.map(c=>`<option ${c===f.cultivo?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </td>
+    <td>
+      <select class="cell-select" style="width:110px" onchange="actualizarFila(${f.id},'tipo',this.value)">
+        <option value="">—</option>
+        ${TIPOS.map(t=>`<option ${t===f.tipo?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </td>
+    <td><input class="cell-input" style="width:58px;text-align:right;font-weight:700" type="number" step="0.1" value="${f.has}" onchange="actualizarFila(${f.id},'has',parseFloat(this.value))"></td>
+    <td><input class="cell-input cell-mono" style="width:165px" value="${f.insumo}" onchange="actualizarFila(${f.id},'insumo',this.value)"></td>
+    <td>
+      <select class="cell-select" style="width:100px" onchange="actualizarFila(${f.id},'condicion',this.value)">
+        ${CONDICIONES.map(c=>`<option ${c===f.condicion?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </td>
+    <td><input class="cell-input" style="width:120px" value="${f.contratista}" onchange="actualizarFila(${f.id},'contratista',this.value)"></td>
+    <td><button class="btn-del-row" onclick="eliminarFila(${f.id})" title="Eliminar fila">✕</button></td>
+  `;
+  return tr;
+}
+
+function actualizarFila(id, campo, valor) {
+  const f = filas.find(x => x.id === id);
+  if (f) f[campo] = valor;
+}
+
+function actualizarLote(id, valor) {
+  const f = filas.find(x => x.id === id);
+  if (!f) return;
+  f.lote = valor.toUpperCase().trim();
+  // Actualizar campo inferido
+  const tr = document.getElementById(`row-${id}`);
+  if (tr) {
+    const campoInput = tr.querySelectorAll('.cell-input')[1];
+    if (campoInput) campoInput.value = inferirCampo(f.lote);
+  }
+  document.getElementById(`row-${id}`).querySelector('.cell-input').value = valor.toUpperCase();
+}
+
+function eliminarFila(id) {
+  filas = filas.filter(f => f.id !== id);
+  const tr = document.getElementById(`row-${id}`);
+  if (tr) tr.remove();
+  document.getElementById('rowCount').innerHTML = `<strong>${filas.length}</strong> filas`;
+  if (!filas.length) renderTabla();
+}
+
+function agregarFila() {
+  const fechaInput = document.getElementById('fechaManual').value;
+  let fecha = '';
+  if (fechaInput) {
+    const [y,m,d] = fechaInput.split('-');
+    fecha = `${d}/${m}/${y}`;
+  }
+  const nueva = { id: nextId++, fecha, lote:'', cultivo:'Poroto', tipo:'', has:'', insumo:'', condicion:'Parcial', contratista:'' };
+  filas.push(nueva);
+  const tbody = document.getElementById('tableBody');
+  if (tbody) {
+    tbody.appendChild(crearFila(nueva));
+  } else {
+    renderTabla();
+  }
+  document.getElementById('rowCount').innerHTML = `<strong>${filas.length}</strong> filas`;
+  // Scroll a la nueva fila y focus en lote
+  setTimeout(() => {
+    const tr = document.getElementById(`row-${nueva.id}`);
+    if (tr) {
+      tr.scrollIntoView({behavior:'smooth', block:'center'});
+      tr.querySelectorAll('.cell-input')[2]?.focus();
+    }
+  }, 80);
+}
+
+function leerDesdeDOM() {
+  // Sincronizar DOM → array antes de exportar
+  filas.forEach(f => {
+    const tr = document.getElementById(`row-${f.id}`);
+    if (!tr) return;
+    const inputs  = tr.querySelectorAll('.cell-input');
+    const selects = tr.querySelectorAll('.cell-select');
+    f.fecha       = inputs[0]?.value  || '';
+    f.lote        = inputs[2]?.value  || '';
+    f.insumo      = inputs[3]?.value  || '';
+    f.contratista = inputs[4]?.value  || '';
+    f.cultivo     = selects[0]?.value || '';
+    f.tipo        = selects[1]?.value || '';
+    f.has         = parseFloat(inputs[5]?.value) || 0;  // col 5 after campo
+    f.condicion   = selects[2]?.value || '';
+  });
+}
+
+function validarTabla() {
+  leerDesdeDOM();
+  let errores = 0;
+  filas.forEach(f => {
+    const tr = document.getElementById(`row-${f.id}`);
+    if (!tr) return;
+    const inputs = tr.querySelectorAll('.cell-input');
+    // Lote
+    const loteInput = inputs[2];
+    if (!f.lote) { loteInput?.classList.add('error'); errores++; }
+    else loteInput?.classList.remove('error');
+    // Has
+    const hasInput = tr.querySelector('input[type="number"]');
+    if (!f.has || f.has <= 0) { hasInput?.classList.add('error'); errores++; }
+    else hasInput?.classList.remove('error');
+    // Color fila
+    if (!f.lote || !f.has || f.has <= 0) tr.classList.add('row-error');
+    else tr.classList.remove('row-error');
+  });
+  if (errores) mostrarError(`⚠ ${errores} campo${errores>1?'s':''} incompleto${errores>1?'s':''}. Revisá los marcados en rojo.`);
+  else mostrarInfo('✔ Todo correcto. Podés exportar.');
+}
+
+// ── EXPORT ─────────────────────────────────────────────────────────────────
+function obtenerFilas() {
+  leerDesdeDOM();
+  return filas.map(f => ({
+    ...f,
+    campo: inferirCampo(f.lote)
+  }));
+}
+
+function copiarTSV() {
+  const rows = obtenerFilas();
+  if (!rows.length) return;
+  const header = 'Fecha\tCampo\tLote\tCultivo\tTipo\tHas\tInsumo\tCondicion\tContratista';
+  const lines  = rows.map(r =>
+    [r.fecha, r.campo, r.lote, r.cultivo, r.tipo,
+     String(r.has).replace('.',','), r.insumo, r.condicion, r.contratista
+    ].join('\t')
+  );
+  navigator.clipboard.writeText(header + '\n' + lines.join('\n'))
+    .then(() => mostrarInfo('✔ Copiado. Abrí Excel, hacé clic en la celda destino y pegá (Ctrl+V).'))
+    .catch(() => mostrarError('No se pudo copiar automáticamente. Usá el botón CSV.'));
+}
+
+function descargarCSV() {
+  const rows = obtenerFilas();
+  if (!rows.length) return;
+  const header = 'Fecha,Campo,Lote,Cultivo,Tipo,Has,Insumo,Condicion,Contratista';
+  const lines  = rows.map(r => {
+    const vals = [r.fecha, r.campo, r.lote, r.cultivo, r.tipo, r.has, r.insumo, r.condicion, r.contratista];
+    return vals.map(v => `"${String(v??'').replace(/"/g,'""')}"`).join(',');
+  });
+  const csv  = '\uFEFF' + header + '\n' + lines.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.getElementById('csvLink');
+  const hoy  = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = `avance_siembra_${hoy}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function setLoading(on) {
+  const btn = document.getElementById('parseBtn');
+  document.getElementById('spinner').style.display = on ? 'block' : 'none';
+  document.getElementById('btnIcon').style.display = on ? 'none'  : 'inline';
+  document.getElementById('btnTxt').textContent = on ? 'Interpretando...' : 'Interpretar mensaje';
+  btn.disabled = on;
+}
+function mostrarError(msg) {
+  const el = document.getElementById('msgError');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('msgInfo').style.display = 'none';
+}
+function mostrarInfo(msg) {
+  const el = document.getElementById('msgInfo');
+  el.textContent = msg; el.style.display = 'block';
+  document.getElementById('msgError').style.display = 'none';
+}
+function ocultarMensajes() {
+  document.getElementById('msgError').style.display = 'none';
+  document.getElementById('msgInfo').style.display  = 'none';
+}
+</script>
+</body>
+</html>
