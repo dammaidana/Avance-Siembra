@@ -6,7 +6,7 @@ exports.handler = async function(event) {
       statusCode: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, x-api-key',
+        'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
       },
       body: ''
@@ -17,12 +17,12 @@ exports.handler = async function(event) {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
-  const apiKey = event.headers['x-api-key'] || '';
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return {
-      statusCode: 401,
+      statusCode: 500,
       headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({ error: 'API key requerida' })
+      body: JSON.stringify({ error: 'API key no configurada en el servidor' })
     };
   }
 
@@ -65,23 +65,20 @@ exports.handler = async function(event) {
           resolve({
             statusCode: 500,
             headers: { 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({ error: 'Respuesta vacía de Gemini (status ' + res.statusCode + ')' })
+            body: JSON.stringify({ error: 'Respuesta vacía (status ' + res.statusCode + ')' })
           });
           return;
         }
         try {
           const geminiResp = JSON.parse(data);
-
-          // Verificar si Gemini devolvió error
           if (geminiResp.error) {
             resolve({
               statusCode: 400,
               headers: { 'Access-Control-Allow-Origin': '*' },
-              body: JSON.stringify({ error: 'Gemini error: ' + geminiResp.error.message })
+              body: JSON.stringify({ error: 'Gemini: ' + geminiResp.error.message })
             });
             return;
           }
-
           const text = geminiResp.candidates?.[0]?.content?.parts?.[0]?.text || '';
           resolve({
             statusCode: 200,
@@ -95,7 +92,7 @@ exports.handler = async function(event) {
           resolve({
             statusCode: 500,
             headers: { 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({ error: 'Parse error: ' + e.message + ' | Raw: ' + data.substring(0, 200) })
+            body: JSON.stringify({ error: 'Parse error: ' + e.message + ' | Raw: ' + data.substring(0,200) })
           });
         }
       });
