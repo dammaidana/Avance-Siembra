@@ -40,7 +40,7 @@ exports.handler = async function(event) {
   const userMessage = body.messages[0].content;
 
   const payload = JSON.stringify({
-    model: 'meta-llama/llama-3.1-8b-instruct:free',
+    model: 'openrouter/auto',
     messages: [{ role: 'user', content: userMessage }],
     max_tokens: 4000,
     temperature: 0.1
